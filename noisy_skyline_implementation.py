@@ -43,6 +43,72 @@ def BoostProb(command, p, q, i, deltaMain, delta1, delta2):
     else:
         return False, num_calls
 
+    
+def brute_force(s, delta, error):
+    start = time.time()
+    n = len(s)
+    dims = len(s[0])
+    optimal = []
+    sorted_i = []
+    optimal = []
+    num_calls = 0
+    for i in range(dims):
+        s_i, calls = msort2(s, i, error)
+        num_calls += calls
+        sorted_i.append(s_i)
+
+    changed = True
+    while changed:
+        changed = False
+        for i in range(dims):
+            optima_i = []
+            compl = False
+            curr = -1
+            while not compl and len(sorted_i[i]) > 0:
+                dominated, calls = SetDominates(optimal, sorted_i[i][curr], delta/2, delta/2, error)
+                num_calls += calls
+                if not np.any(dominated):
+                    optimal.append(sorted_i[i][curr])
+                    changed = True
+                    sorted_i[i].pop(curr)
+                else:
+                    compl = True
+    
+    # check internally:
+    new_optimal = []
+    for i in range(len(optimal)):
+        sublist = optimal[:i] + optimal[i + 1:]
+        dominated, calls = SetDominates(sublist, optimal[i], delta/2, delta/2, error)
+        num_calls += calls
+        if not dominated:
+            new_optimal.append(optimal[i])
+    end = time.time()
+    return new_optimal, end - start, num_calls
+
+def msort2(x, dim, error):
+    if len(x) < 2:
+        return x, 0
+    num_calls = 0
+    result = []
+    mid = int(len(x) / 2)
+    y, calls1 = msort2(x[:mid], dim, error)
+    z, calls2 = msort2(x[mid:], dim, error)
+    num_calls += calls1
+    num_calls += calls2
+    while (len(y) > 0) and (len(z) > 0):
+        comp, calls = BoostProb("oracle", z[0], y[0], dim, error, 1/(16*len(y)), 1/16)
+        num_calls += calls
+        if not comp:
+            result.append(z[0])
+            z.pop(0)
+        else:
+            result.append(y[0])
+            y.pop(0)
+    result += y
+    result += z
+    return result, num_calls
+    
+    
 v1 = (1, 2)
 v2 = (2, 1)
 trials = 1000
